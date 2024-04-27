@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+      #container {
+        height: 90vh;
+        width: 30vw;
+        background-color: aqua;
+        border: 1px solid red;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #glv_image {
+        height: 5rem;
+        width: 5rem;
+        position: absolute;
+        bottom: 0;
+      }
+      .falling-image {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+      }
+      #score {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 24px;
+        display: none;
+      }
+      .positive-score {
+        color: green;
+      }
+      .negative-score {
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Score: <span id="total_score">0</span></p>
+    <div id="container">
+      <img id="glv_image" src="./glove.png" alt="Image" />
+      <div id="score">+30</div>
+    </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const container = document.getElementById("container");
+        const image = document.getElementById("glv_image");
+        const containerWidth = container.offsetWidth;
+        const imageWidth = image.offsetWidth;
+        const initialLeft = (containerWidth - imageWidth) / 2; // Calculate initial left position
+        let totalScore = 0;
+
+        // Set initial left position
+        image.style.left = initialLeft + "px";
+
+        let scoreDisplay = document.getElementById("score");
+
+        document.addEventListener("keydown", function (event) {
+          const step = 10; // Change this value to adjust the movement speed
+          const currentLeft = parseInt(image.style.left) || 0;
+
+          if (!image.isMoving) {
+            if (event.key === "ArrowLeft") {
+              const newLeft = Math.max(currentLeft - step, 0);
+              image.style.left = newLeft + "px";
+              checkCollision(); // Call checkCollision after moving with arrow keys
+            } else if (event.key === "ArrowRight") {
+              const newRight = Math.min(
+                currentLeft + step,
+                containerWidth - imageWidth
+              );
+              image.style.left = newRight + "px";
+              checkCollision(); // Call checkCollision after moving with arrow keys
+            }
+          }
+        });
+
+        function moveImage(event) {
+          var containerRect = container.getBoundingClientRect();
+          var containerWidth = containerRect.width;
+          var mouseX = event.clientX - containerRect.left;
+
+          // Calculate the position to move the image
+          var newPosition = mouseX - image.width / 2;
+
+          // Make sure the image doesn't move outside the container
+          newPosition = Math.max(
+            0,
+            Math.min(containerWidth - image.width, newPosition)
+          );
+
+          // Set the new position of the image
+          image.style.left = newPosition + "px";
+
+          // Flag to indicate that the image is being moved by the mouse
+          image.isMoving = true;
+
+          // Clear the flag after a short delay
+          setTimeout(function () {
+            image.isMoving = false;
+          }, 100);
+
+          checkCollision();
+        }
+
+        function checkCollision() {
+          const fallingImages =
+            document.getElementsByClassName("falling-image");
+          for (let i = 0; i < fallingImages.length; i++) {
+            const fallingImage = fallingImages[i];
+            const fallingRect = fallingImage.getBoundingClientRect();
+            const imageRect = image.getBoundingClientRect();
+            if (
+              fallingRect.left < imageRect.right &&
+              fallingRect.right > imageRect.left &&
+              fallingRect.top < imageRect.bottom &&
+              fallingRect.bottom > imageRect.top
+            ) {
+              // Collision detected
+              const score = parseInt(fallingImage.getAttribute("data-score"));
+              const color = fallingImage.getAttribute("data-color");
+              scoreDisplay.innerText = (score >= 0 ? "+" : "") + score;
+              scoreDisplay.className =
+                score >= 0 ? "positive-score" : "negative-score";
+              scoreDisplay.style.display = "block";
+              setTimeout(function () {
+                scoreDisplay.style.display = "none";
+              }, 1000);
+              if (fallingImage.parentNode) {
+                fallingImage.parentNode.removeChild(fallingImage);
+              }
+              // Update score or perform other actions here
+              totalScore += score;
+              document.getElementById("total_score").innerText = totalScore;
+            }
+          }
+        }
+
+        // Function to create falling images
+        function createFallingImages() {
+          const containerWidth = container.offsetWidth;
+          const fallingTypes = [
+            {
+              src: "https://via.placeholder.com/50",
+              score: 30,
+              color: "green",
+            },
+            {
+              src: "https://via.placeholder.com/50/0000FF",
+              score: 20,
+              color: "blue",
+            },
+            {
+              src: "https://via.placeholder.com/50/FF0000",
+              score: -10,
+              color: "red",
+            },
+          ];
+
+          for (let i = 0; i < 3; i++) {
+        const fallingType = fallingTypes[Math.floor(Math.random() * fallingTypes.length)];
+        const randomX = Math.floor(Math.random() * (containerWidth - 50)); // Random X position within container width
+        const fallingImage = document.createElement("img");
+        fallingImage.src = fallingType.src;
+        fallingImage.className = "falling-image";
+        fallingImage.style.left = randomX + "px";
+        fallingImage.setAttribute("data-score", fallingType.score);
+        fallingImage.setAttribute("data-color", fallingType.color);
+        container.appendChild(fallingImage);
+
+        // Display score next to falling image
+        const scoreSpan = document.createElement("span");
+        scoreSpan.innerText = fallingType.score;
+        scoreSpan.className = fallingType.score >= 0 ? "positive-score" : "negative-score";
+        fallingImage.appendChild(scoreSpan);
+
+        // Animation for falling image
+        const animation = fallingImage.animate(
+          [{ top: "-50px" }, { top: container.offsetHeight + "px" }],
+          {
+            duration: 3000, // Adjust duration as needed
+            iterations: 1,
+            fill: "forwards",
+          }
+        );
+
+        // Remove the falling image element after animation completes
+        animation.onfinish = function () {
+          if (fallingImage.parentNode) {
+            fallingImage.parentNode.removeChild(fallingImage);
+          }
+        };
+      }
+    }
+
+        // Start creating falling images at intervals
+        setInterval(createFallingImages, 2000); // Adjust interval as needed
+
+        // Call checkCollision at regular intervals
+        setInterval(checkCollision, 100); // Adjust interval as needed
+
+        // Add mousemove event listener after defining moveImage function
+        container.addEventListener("mousemove", moveImage);
+      });
+    </script>
+  </body>
+</html>
